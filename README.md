@@ -14,10 +14,13 @@
 
     PANDORA_USERNAME=ваш_логин
     PANDORA_PASSWORD=ваш_пароль
+    PANDORA_POLL_INTERVAL=5m
 
 Запустите из корня проекта:
 
     docker compose -f examples/compose.yaml up -d --build
+
+Первый опрос выполняется сразу, следующие — через 5 минут после завершения предыдущего. PANDORA_POLL_INTERVAL задаёт интервал (например 5m, 1m, 300s; минимум 10s). Флаг --poll-interval имеет приоритет.
 
 Compose читает .env из корня проекта. Файл исключён из Git и Docker-образа.
 Если пароль содержит символ $ или #, заключите значение в одинарные кавычки

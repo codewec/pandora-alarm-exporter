@@ -65,7 +65,15 @@ func (e *Exporter) Poll(ctx context.Context) (err error) {
 	defer e.mu.Unlock()
 	if full {
 		e.devices = devices
+		oldStats := e.stats
 		e.stats = map[string]Object{}
+		// Retain last valid position for still-present devices, like the HA tracker.
+		for _, d := range devices {
+			old := oldStats[d.Key()]
+			if _, _, ok := validCoordinates(old); ok {
+				e.stats[d.Key()] = Object{"x": old["x"], "y": old["y"]}
+			}
+		}
 		e.times = map[string]Object{}
 		e.full = time.Now()
 	}
@@ -74,9 +82,7 @@ func (e *Exporter) Poll(ctx context.Context) (err error) {
 		if e.stats[id] == nil {
 			e.stats[id] = Object{}
 		}
-		for k, v := range u.Stats[id] {
-			e.stats[id][k] = v
-		}
+		e.stats[id] = mergeState(e.stats[id], u.Stats[id])
 		if e.times[id] == nil {
 			e.times[id] = Object{}
 		}
@@ -113,8 +119,6 @@ type field struct {
 }
 
 var fields = []field{
-	{"online", "online", "Device connectivity reported by API.", 1},
-	{"move", "moving", "Device movement reported by API.", 1},
 	{"voltage", "battery_voltage_volts", "Battery voltage in volts.", 1},
 	{"engine_temp", "engine_temperature_celsius", "Engine temperature in Celsius.", 1},
 	{"cabin_temp", "cabin_temperature_celsius", "Cabin temperature in Celsius.", 1},
@@ -175,13 +179,39 @@ func (e *Exporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.add("devices", "Number of discovered devices.", "gauge", "", float64(len(e.devices)))
 	for _, d := range e.devices {
 		id := d.Key()
-		s := e.stats[id]
+		s := normalizeState(e.stats[id])
 		l := "{device_id=" + quote(id) + "}"
 		add := func(name, help string, v float64) { m.add(name, help, "gauge", l, v) }
 		m.add("device_info", "Device metadata.", "gauge", "{device_id="+quote(id)+",name="+quote(d.Name)+",model="+quote(d.Model)+",firmware="+quote(d.Firmware)+"}", 1)
-		for _, f := range fields {
+		for _, f := range append(append([]field{}, fields...), extraFields...) {
 			if v, ok := number(s[f.key]); ok {
 				add(f.name, f.help, v*f.scale)
+			}
+		}
+		for _, f := range binaryFields {
+			if v, ok := number(s[f.key]); ok {
+				value := 0.0
+				if v != 0 {
+					value = 1
+				}
+				if f.inverse {
+					value = 1 - value
+				}
+				add(f.name, "Binary state matching HA; 1 means active.", value)
+			}
+		}
+		for key, name := range map[string]string{"heater_errors": "heater_errors", "OBD_codes": "obd_errors"} {
+			if values, ok := s[key].([]any); ok {
+				active := 0.0
+				if len(values) > 0 {
+					active = 1
+				}
+				add(name, "Whether the API reports any diagnostic errors.", active)
+			}
+		}
+		for key, name := range map[string]string{"command": "last_command_timestamp_seconds", "setting": "last_settings_timestamp_seconds"} {
+			if v, ok := number(e.times[id][key]); ok {
+				add(name, "Last operation Unix timestamp.", v)
 			}
 		}
 		if v, ok := number(e.times[id]["online"]); ok {
@@ -202,10 +232,9 @@ func (e *Exporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if e.coordinates {
-			for key, name := range map[string]string{"x": "latitude_degrees", "y": "longitude_degrees"} {
-				if v, ok := number(s[key]); ok {
-					add(name, "GPS coordinate in degrees.", v)
-				}
+			if lat, lon, valid := validCoordinates(s); valid {
+				add("latitude_degrees", "GPS latitude in degrees.", lat)
+				add("longitude_degrees", "GPS longitude in degrees.", lon)
 			}
 		}
 		if raw, ok := s["bit_state_1"]; ok {

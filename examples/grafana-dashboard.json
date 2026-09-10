@@ -11,7 +11,7 @@
   "title": "Pandora",
   "uid": "pandora-exporter",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 4,
   "timezone": "browser",
   "refresh": "1m",
   "time": {
@@ -104,8 +104,18 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "pandora_engine_temperature_celsius or pandora_cabin_temperature_celsius or pandora_ambient_temperature_celsius",
-          "legendFormat": "{{device_id}} {{state}} {{sim}} {{currency}} {{__name__}}"
+          "expr": "pandora_engine_temperature_celsius",
+          "legendFormat": "{{device_id}} — Двигатель"
+        },
+        {
+          "refId": "B",
+          "expr": "pandora_cabin_temperature_celsius",
+          "legendFormat": "{{device_id}} — Салон"
+        },
+        {
+          "refId": "C",
+          "expr": "pandora_ambient_temperature_celsius",
+          "legendFormat": "{{device_id}} — За бортом"
         }
       ],
       "fieldConfig": {
@@ -172,8 +182,13 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "pandora_gps_mileage_meters / 1000 or pandora_can_mileage_meters / 1000",
-          "legendFormat": "{{device_id}} {{state}} {{sim}} {{currency}} {{__name__}}"
+          "expr": "pandora_gps_mileage_meters / 1000",
+          "legendFormat": "{{device_id}} — GPS"
+        },
+        {
+          "refId": "B",
+          "expr": "pandora_can_mileage_meters / 1000",
+          "legendFormat": "{{device_id}} — CAN"
         }
       ],
       "fieldConfig": {
@@ -358,6 +373,234 @@
           "placement": "bottom"
         }
       }
+    },
+    {
+      "id": 11,
+      "title": "Уровень сигнала GSM",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pandora_gsm_level",
+          "legendFormat": "{{device_id}} — GSM"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Двери / багажник / капот",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pandora_state{state=\"front_left_door_open\"}",
+          "legendFormat": "{{device_id}} — Передняя левая открыта"
+        },
+        {
+          "refId": "B",
+          "expr": "pandora_state{state=\"front_right_door_open\"}",
+          "legendFormat": "{{device_id}} — Передняя правая открыта"
+        },
+        {
+          "refId": "C",
+          "expr": "pandora_state{state=\"rear_left_door_open\"}",
+          "legendFormat": "{{device_id}} — Задняя левая открыта"
+        },
+        {
+          "refId": "D",
+          "expr": "pandora_state{state=\"rear_right_door_open\"}",
+          "legendFormat": "{{device_id}} — Задняя правая открыта"
+        },
+        {
+          "refId": "E",
+          "expr": "pandora_state{state=\"trunk_open\"}",
+          "legendFormat": "{{device_id}} — Багажник открыт"
+        },
+        {
+          "refId": "F",
+          "expr": "pandora_state{state=\"hood_open\"}",
+          "legendFormat": "{{device_id}} — Капот открыт"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 1,
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Нет"
+                },
+                "1": {
+                  "text": "Да"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "title": "Состояния автомобиля",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pandora_state{state=\"immobilizer\"}",
+          "legendFormat": "{{device_id}} — Двигатель заблокирован"
+        },
+        {
+          "refId": "B",
+          "expr": "pandora_moving",
+          "legendFormat": "{{device_id}} — В движении"
+        },
+        {
+          "refId": "C",
+          "expr": "pandora_state{state=\"ignition\"}",
+          "legendFormat": "{{device_id}} — Зажигание"
+        },
+        {
+          "refId": "D",
+          "expr": "pandora_state{state=\"brake\"}",
+          "legendFormat": "{{device_id}} — Тормоз"
+        },
+        {
+          "refId": "E",
+          "expr": "pandora_state{state=\"parking_brake\"}",
+          "legendFormat": "{{device_id}} — Нейтраль (parking)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 1,
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Нет"
+                },
+                "1": {
+                  "text": "Да"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Нейтраль соответствует HA-сенсору parking: бит 27 bit_state_1. В API этот бит описан как ручной тормоз; интерпретация зависит от автомобиля и настройки сигнализации."
+    },
+    {
+      "id": 14,
+      "title": "Моточасы",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pandora_engine_hours",
+          "legendFormat": "{{device_id}} — Моточасы"
+        },
+        {
+          "refId": "B",
+          "expr": "pandora_can_engine_hours",
+          "legendFormat": "{{device_id}} — Моточасы CAN"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "description": "Значения motohours и motohours_CAN из API, в часах. При отсутствии данных серия не отображается."
     }
   ],
   "tags": [

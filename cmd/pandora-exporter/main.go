@@ -25,12 +25,22 @@ func main() {
 func run() error {
 	listen := flag.String("web.listen-address", ":9349", "HTTP listen address")
 	base := flag.String("pandora.base-url", "https://p-on.ru", "Pandora API base URL")
-	interval := flag.Duration("poll-interval", time.Minute, "Background poll interval (minimum 10s)")
+	interval := flag.Duration("poll-interval", 5*time.Minute, "Background poll interval (minimum 10s)")
 	timeout := flag.Duration("request-timeout", 20*time.Second, "Timeout per API request")
 	maxAge := flag.Duration("max-data-age", 10*time.Minute, "Threshold for data_stale")
-	coordinates := flag.Bool("collect-coordinates", false, "Export GPS coordinates")
+	coordinates := flag.Bool("collect-coordinates", true, "Export GPS coordinates")
 	flag.Parse()
 	if err := config.LoadEnv(".env"); err != nil {
+		return err
+	}
+	cliInterval := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "poll-interval" {
+			cliInterval = true
+		}
+	})
+	pollInterval, err := config.PollInterval(os.Getenv("PANDORA_POLL_INTERVAL"), *interval, cliInterval)
+	if err != nil {
 		return err
 	}
 	username, password := os.Getenv("PANDORA_USERNAME"), os.Getenv("PANDORA_PASSWORD")
@@ -47,7 +57,7 @@ func run() error {
 	if username == "" || password == "" {
 		return errors.New("PANDORA_USERNAME and PANDORA_PASSWORD (or PANDORA_PASSWORD_FILE) are required")
 	}
-	if *interval < 10*time.Second || *timeout <= 0 || *maxAge <= 0 {
+	if *timeout <= 0 || *maxAge <= 0 {
 		return errors.New("invalid interval, timeout or maximum data age")
 	}
 	client, err := pandora.NewClient(*base, username, password, *timeout)
@@ -65,7 +75,7 @@ func run() error {
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(*interval):
+			case <-time.After(pollInterval):
 			}
 		}
 	}()
@@ -81,7 +91,7 @@ func run() error {
 		defer cancel()
 		server.Shutdown(shutdown)
 	}()
-	log.Printf("Listening on %s", *listen)
+	log.Printf("Listening on %s; API poll interval: %s", *listen, pollInterval)
 	err = server.ListenAndServe()
 	stop()
 	<-done

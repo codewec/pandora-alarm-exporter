@@ -20,7 +20,9 @@
 
 ## Метрики
 
-Все метрики машины имеют label device_id. Название, модель и прошивка находятся только в pandora_device_info{device_id,name,model,firmware}=1. Все перечисленные измерения — gauge; GPS/CAN-пробег также gauge, поскольку может корректироваться или сбрасываться.
+Все метрики машины имеют label device_id. Название, модель и прошивка находятся только в pandora_device_info{device_id,name,model,firmware}=1. Моточасы сопоставлены с моделью CurrentState из pandora-cas 0.0.16, используемой HA-интеграцией версии 2025.2.4. Вложенные can.motohours / can.motohours_CAN имеют приоритет над одноимёнными полями stats. Отсутствующие значения не заменяются нулями.
+
+Все перечисленные измерения — gauge; GPS/CAN-пробег также gauge, поскольку может корректироваться или сбрасываться.
 
 | Поле API | Метрика (префикс pandora_) | Единицы |
 |---|---|---|
@@ -32,6 +34,7 @@
 | speed | speed_meters_per_second | м/с, API км/ч делятся на 3.6 |
 | mileage / mileage_CAN | gps_mileage_meters / can_mileage_meters | м, API км умножаются на 1000 |
 | engine_rpm | engine_rpm | об/мин |
+| motohours / motohours_CAN | engine_hours / can_engine_hours | часы, без пересчёта; также читаются из can |
 | gsm_level | gsm_level | исходная шкала API, не dBm |
 | balance / balance1 | sim_balance{sim="0 или 1",currency} | валюта из cur |
 | active_sim | active_sim | индекс |
@@ -54,6 +57,8 @@
 | 33–35 | evacuation_mode, service_mode, stay_home |
 | 60–61 | tag_polling_disabled, disarm_without_tag_disabled |
 
+Сенсор HA parking соответствует pandora_state{state="parking_brake"} (бит 27). На дашборде он подписан «Нейтраль (parking)» по обозначению пользователя в HA. В протоколе бит описан как ручной тормоз, поэтому это не отдельный универсальный датчик положения коробки передач.
+
 armed=1 означает «под охраной»: значение флага используется без инверсии. Для *_disabled единица означает отключение соответствующей функции.
 
 Другие доступные поля пока не экспортируются:
@@ -68,7 +73,9 @@ armed=1 означает «под охраной»: значение флага 
 
 ## Кэш, ошибки и свежесть
 
-Опрос сразу при запуске, затем через 60 секунд после завершения предыдущего. Полное обновление и перечитывание списка устройств — каждые 5 минут при следующем опросе. Удалённые устройства и отсутствующие поля удаляются при полном обновлении. Частичные обновления сохраняют предыдущие значения; явный null прекращает экспорт соответствующего измерения. Отсутствующие и нечисловые значения не заменяются нулём.
+Интервал настраивается в .env: PANDORA_POLL_INTERVAL=5m. Поддерживаются длительности с единицами, например 1m или 300s; минимум 10s. Приоритет: --poll-interval → переменная окружения / .env → 5m. Изменение .env требует перезапуска экспортера.
+
+Опрос сразу при запуске, затем через 5 минут после завершения предыдущего. Полное обновление и перечитывание списка устройств — каждые 5 минут при следующем опросе. Удалённые устройства и отсутствующие поля удаляются при полном обновлении. Частичные обновления сохраняют предыдущие значения; явный null прекращает экспорт соответствующего измерения. Отсутствующие и нечисловые значения не заменяются нулём.
 
 При ошибке сохраняется последний успешный снимок. Поэтому HTTP 200 и Prometheus up=1 не означают, что Pandora доступна:
 
@@ -105,7 +112,7 @@ online — отдельное состояние связи машины. Сер
 |---|---|
 | --web.listen-address | :9349 |
 | --pandora.base-url | https://p-on.ru |
-| --poll-interval | 1m, минимум 10s |
+| --poll-interval | 5m, минимум 10s; переопределяет PANDORA_POLL_INTERVAL |
 | --request-timeout | 20s на каждый HTTP-запрос |
 | --max-data-age | 10m |
 | --collect-coordinates | false |
@@ -122,7 +129,7 @@ Prometheus доступен на localhost:9090, метрики — localhost:93
 
 ## Запросы Grafana / PromQL
 
-Готовый [dashboard](../examples/grafana-dashboard.json): импортируйте JSON через Dashboards → Import и выберите источник Prometheus. Панель баланса показывает валюту в легенде; она не предполагает, что все SIM используют рубли.
+Готовый [dashboard](../examples/grafana-dashboard.json): импортируйте JSON через Dashboards → Import и выберите источник Prometheus. Пробег GPS/CAN и три температуры используют отдельные запросы и легенды. Добавлены панели GSM, открытия дверей/багажника/капота и состояний автомобиля. Панель баланса показывает валюту в легенде; она не предполагает, что все SIM используют рубли.
 
     pandora_battery_voltage_volts
     pandora_fuel_ratio * 100
@@ -142,7 +149,7 @@ Prometheus доступен на localhost:9090, метрики — localhost:93
 
     up{job="pandora"} == 0
     pandora_scrape_success == 0
-    time() - pandora_last_success_timestamp_seconds > 300
+    time() - pandora_last_success_timestamp_seconds > 660
     pandora_data_stale == 1
     pandora_online == 0
 
@@ -155,7 +162,7 @@ Prometheus доступен на localhost:9090, метрики — localhost:93
 
 ## GitHub Actions / GHCR
 
-[Workflow](../.github/workflows/exporter.yaml) запускает gofmt, vet, race-тесты и сборку Go, затем собирает образ linux/amd64 и linux/arm64. PR проверяет сборку без публикации; push в master/main, тег v* или ручной запуск публикуют ghcr.io/<owner>/<repository>/pandora-exporter. Имя автоматически приводится к нижнему регистру.
+[Workflow](../.github/workflows/exporter.yaml) запускает gofmt, vet, race-тесты и сборку Go, затем собирает образ linux/amd64 и linux/arm64. PR проверяет сборку без публикации; push в master/main, тег v* или ручной запуск публикуют ghcr.io/<owner>/pandora-alarm-exporter. Имя автоматически приводится к нижнему регистру.
 
 Теги: latest для default branch, имя ветки, sha-…, версия из semver-тега (v1.2.3 → 1.2.3). Для первого релиза отправьте изменения в свой GitHub-репозиторий и при необходимости тег v1.0.0. Используется встроенный GITHUB_TOKEN с packages:write; секреты Pandora для сборки не требуются. Видимость пакета GHCR настраивается в GitHub; для скачивания приватного пакета нужна авторизация.
 
