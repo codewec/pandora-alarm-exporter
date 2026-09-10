@@ -278,8 +278,11 @@ func (e *Exporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if raw, ok := s["bit_state_1"]; ok {
-			bits, err := strconv.ParseUint(fmt.Sprint(raw), 10, 64)
-			if err == nil {
+			// WebSocket JSON decodes this integer as float64 and fmt.Sprint
+			// may use scientific notation. Parse through the common numeric
+			// conversion instead of requiring a decimal string.
+			if n, ok := number(raw); ok && n >= 0 && n <= math.MaxUint64 && math.Trunc(n) == n {
+				bits := uint64(n)
 				for bit, name := range flags {
 					m.add("state", "Decoded bit_state_1 flag; 1 means active.", "gauge", "{device_id="+quote(id)+",state="+quote(name)+"}", float64((bits>>bit)&1))
 				}

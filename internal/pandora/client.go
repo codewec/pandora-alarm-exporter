@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
+	"math"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -27,6 +28,28 @@ type Device struct {
 }
 
 func (d Device) Key() string { return fmt.Sprint(d.ID) }
+
+// websocket JSON is decoded into interface values, so integer device IDs
+// arrive as float64 (and fmt.Sprint would render large IDs in scientific
+// notation). Keep the same decimal key used by /api/devices.
+func objectDeviceKey(value any) string {
+	switch v := value.(type) {
+	case json.Number:
+		if i, err := strconv.ParseInt(string(v), 10, 64); err == nil {
+			return strconv.FormatInt(i, 10)
+		}
+		return string(v)
+	case float64:
+		if v == math.Trunc(v) && v >= math.MinInt64 && v <= math.MaxInt64 {
+			return strconv.FormatInt(int64(v), 10)
+		}
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	case float32:
+		return objectDeviceKey(float64(v))
+	default:
+		return fmt.Sprint(value)
+	}
+}
 
 type Update struct {
 	TS    json.Number       `json:"ts"`
@@ -267,9 +290,9 @@ func (c *Client) WebSocketStates(ctx context.Context, timeout time.Duration) (ma
 		if message.Type != "initial-state" && message.Type != "state" {
 			continue
 		}
-		id := fmt.Sprint(message.Data["dev_id"])
+		id := objectDeviceKey(message.Data["dev_id"])
 		if id == "<nil>" {
-			id = fmt.Sprint(message.Data["id"])
+			id = objectDeviceKey(message.Data["id"])
 		}
 		if id == "<nil>" || id == "" {
 			continue
@@ -317,9 +340,9 @@ func (c *Client) ListenWebSocket(ctx context.Context, onState func(string, Objec
 		if message.Type != "initial-state" && message.Type != "state" {
 			continue
 		}
-		id := fmt.Sprint(message.Data["dev_id"])
+		id := objectDeviceKey(message.Data["dev_id"])
 		if id == "<nil>" {
-			id = fmt.Sprint(message.Data["id"])
+			id = objectDeviceKey(message.Data["id"])
 		}
 		if id != "<nil>" && id != "" {
 			onState(id, message.Data)
