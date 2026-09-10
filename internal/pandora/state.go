@@ -27,7 +27,13 @@ func normalizeState(s Object) Object {
 
 func validCoordinates(s Object) (float64, float64, bool) {
 	lat, latOK := number(s["x"])
+	if !latOK {
+		lat, latOK = number(s["latitude"])
+	}
 	lon, lonOK := number(s["y"])
+	if !lonOK {
+		lon, lonOK = number(s["longitude"])
+	}
 	return lat, lon, latOK && lonOK && lat != 0 && lon != 0 && math.Abs(lat) <= 90 && math.Abs(lon) <= 180
 }
 

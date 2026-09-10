@@ -34,7 +34,7 @@
 | speed | speed_meters_per_second | м/с, API км/ч делятся на 3.6 |
 | mileage / mileage_CAN | gps_mileage_meters / can_mileage_meters | м, API км умножаются на 1000 |
 | engine_rpm | engine_rpm | об/мин |
-| motohours / motohours_CAN | engine_hours / can_engine_hours | часы, без пересчёта; также читаются из can |
+| motohours / motohours_CAN (или engine_hours / can_engine_hours) | engine_hours / can_engine_hours | часы, без пересчёта; вложенные can имеют приоритет |
 | gsm_level | gsm_level | исходная шкала API, не dBm |
 | balance / balance1 | sim_balance{sim="0 или 1",currency} | валюта из cur |
 | active_sim | active_sim | индекс |
@@ -158,7 +158,7 @@ Prometheus доступен на localhost:9090, метрики — localhost:93
     pandora_battery_voltage_volts
       and on(device_id) (pandora_data_stale == 0)
 
-Координаты включены по умолчанию (отключить можно флагом `--collect-coordinates=false`). Готовый dashboard содержит Geomap: запросы `pandora_latitude_degrees` и `pandora_longitude_degrees` объединяются по `device_id`, затем поля переименовываются в `latitude` и `longitude`. Координаты являются значениями метрик, не labels. Если у машины нет валидной пары координат, точка не выводится; последняя корректная позиция сохраняется при частичном ответе без координат.
+Координаты включены по умолчанию (отключить можно флагом `--collect-coordinates=false`). Готовый dashboard содержит Geomap и карточки для бинарных состояний: в Geomap запросы `pandora_latitude_degrees` и `pandora_longitude_degrees` объединяются по `device_id`, затем поля переименовываются в `latitude` и `longitude`. Координаты являются значениями метрик, не labels. Если у машины нет валидной пары координат, точка не выводится; последняя корректная позиция сохраняется при частичном ответе без координат.
 
 ## GitHub Actions / GHCR
 

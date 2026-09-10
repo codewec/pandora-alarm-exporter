@@ -184,7 +184,21 @@ func (e *Exporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		add := func(name, help string, v float64) { m.add(name, help, "gauge", l, v) }
 		m.add("device_info", "Device metadata.", "gauge", "{device_id="+quote(id)+",name="+quote(d.Name)+",model="+quote(d.Model)+",firmware="+quote(d.Firmware)+"}", 1)
 		for _, f := range append(append([]field{}, fields...), extraFields...) {
-			if v, ok := number(s[f.key]); ok {
+			raw := s[f.key]
+			// Accept canonical API names and HA model aliases for compatibility.
+			if raw == nil {
+				switch f.key {
+				case "motohours":
+					raw = s["engine_hours"]
+				case "motohours_CAN":
+					raw = s["can_engine_hours"]
+				case "x":
+					raw = s["latitude"]
+				case "y":
+					raw = s["longitude"]
+				}
+			}
+			if v, ok := number(raw); ok {
 				add(f.name, f.help, v*f.scale)
 			}
 		}

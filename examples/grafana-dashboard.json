@@ -11,7 +11,7 @@
   "title": "Pandora",
   "uid": "pandora-exporter",
   "schemaVersion": 39,
-  "version": 5,
+  "version": 6,
   "timezone": "browser",
   "refresh": "1m",
   "time": {
@@ -411,7 +411,7 @@
     {
       "id": 12,
       "title": "Двери / багажник / капот",
-      "type": "timeseries",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
@@ -460,10 +460,6 @@
           "min": 0,
           "max": 1,
           "decimals": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "stepAfter"
-          },
           "mappings": [
             {
               "type": "value",
@@ -481,16 +477,23 @@
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      }
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name",
+        "colorMode": "background"
+      },
+      "description": "Статусы отображаются карточками, последнее значение."
     },
     {
       "id": 13,
       "title": "Состояния автомобиля",
-      "type": "timeseries",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
@@ -534,10 +537,6 @@
           "min": 0,
           "max": 1,
           "decimals": 0,
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "stepAfter"
-          },
           "mappings": [
             {
               "type": "value",
@@ -555,12 +554,18 @@
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name",
+        "colorMode": "background"
       },
-      "description": "Нейтраль соответствует HA-сенсору parking: бит 27 bit_state_1. В API этот бит описан как ручной тормоз; интерпретация зависит от автомобиля и настройки сигнализации."
+      "description": "Нейтраль соответствует HA-сенсору parking: бит 27 bit_state_1. В API этот бит описан как ручной тормоз; интерпретация зависит от автомобиля и настройки сигнализации. Статусы отображаются карточками, последнее значение."
     },
     {
       "id": 14,
