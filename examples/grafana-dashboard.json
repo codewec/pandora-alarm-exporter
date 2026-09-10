@@ -717,7 +717,7 @@
     },
     {
       "id": 15,
-      "title": "Расположение автомобилей",
+      "title": "Расположение и маршрут",
       "type": "geomap",
       "datasource": {
         "type": "prometheus",
@@ -734,20 +734,20 @@
           "refId": "A",
           "expr": "pandora_latitude_degrees",
           "format": "table",
-          "instant": true
+          "instant": false
         },
         {
           "refId": "B",
           "expr": "pandora_longitude_degrees",
           "format": "table",
-          "instant": true
+          "instant": false
         }
       ],
       "transformations": [
         {
           "id": "joinByField",
           "options": {
-            "byField": "device_id",
+          "byField": "Time",
             "mode": "outer"
           }
         },
@@ -756,7 +756,9 @@
           "options": {
             "renameByName": {
               "Value #A": "latitude",
-              "Value #B": "longitude"
+              "Value #B": "longitude",
+              "Value": "latitude",
+              "Value 1": "longitude"
             },
             "excludeByName": {
               "Time": true
@@ -805,6 +807,26 @@
             "name": "Автомобили",
             "tooltip": true,
             "type": "markers"
+          },
+          {
+            "config": {
+              "style": {
+                "color": {
+                  "fixed": "#FF7800"
+                },
+                "width": {
+                  "fixed": 3
+                }
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "latitude",
+              "longitude": "longitude"
+            },
+            "name": "Маршрут",
+            "tooltip": true,
+            "type": "route"
           }
         ]
       },

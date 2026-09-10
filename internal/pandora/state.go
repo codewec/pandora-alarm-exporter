@@ -2,6 +2,8 @@ package pandora
 
 import "math"
 
+var stickyStateFields = []string{"motohours", "motohours_CAN", "fuel"}
+
 // Flatten each update before merging the cache, as CurrentState does for HTTP.
 // A new root value must not be shadowed by an older cached CAN value.
 func normalizeState(s Object) Object {
@@ -54,9 +56,32 @@ func mergeState(previous, update Object) Object {
 		delete(result, "y")
 	}
 	for key, value := range result {
+		// Pandora sometimes sends null/omits telemetry between engine starts.
+		// Never erase a previously valid value on such an update.
+		if value == nil {
+			delete(result, key)
+			continue
+		}
+		if stickyTelemetry(key) {
+			if current, ok := number(previous[key]); ok {
+				if incoming, ok := number(value); ok && current > 0 && incoming == 0 {
+					delete(result, key)
+					continue
+				}
+			}
+		}
 		previous[key] = value
 	}
 	return previous
+}
+
+func stickyTelemetry(key string) bool {
+	for _, candidate := range stickyStateFields {
+		if key == candidate {
+			return true
+		}
+	}
+	return false
 }
 
 var extraFields = []field{

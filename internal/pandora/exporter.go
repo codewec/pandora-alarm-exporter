@@ -70,8 +70,17 @@ func (e *Exporter) Poll(ctx context.Context) (err error) {
 		// Retain last valid position for still-present devices, like the HA tracker.
 		for _, d := range devices {
 			old := oldStats[d.Key()]
+			retained := Object{}
 			if _, _, ok := validCoordinates(old); ok {
-				e.stats[d.Key()] = Object{"x": old["x"], "y": old["y"]}
+				retained["x"], retained["y"] = old["x"], old["y"]
+			}
+			for _, key := range stickyStateFields {
+				if value, exists := old[key]; exists && value != nil {
+					retained[key] = value
+				}
+			}
+			if len(retained) > 0 {
+				e.stats[d.Key()] = retained
 			}
 		}
 		e.times = map[string]Object{}
