@@ -4,6 +4,7 @@ ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /src
 COPY go.mod ./
+COPY go.sum ./
 COPY cmd ./cmd
 COPY internal ./internal
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /pandora-exporter ./cmd/pandora-exporter
