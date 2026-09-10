@@ -281,8 +281,8 @@ func (e *Exporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// WebSocket JSON decodes this integer as float64 and fmt.Sprint
 			// may use scientific notation. Parse through the common numeric
 			// conversion instead of requiring a decimal string.
-			if n, ok := number(raw); ok && n >= 0 && n <= math.MaxUint64 && math.Trunc(n) == n {
-				bits := uint64(n)
+			bits, ok := bitState(raw)
+			if ok {
 				for bit, name := range flags {
 					m.add("state", "Decoded bit_state_1 flag; 1 means active.", "gauge", "{device_id="+quote(id)+",state="+quote(name)+"}", float64((bits>>bit)&1))
 				}
@@ -310,5 +310,22 @@ func (e *Exporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for _, s := range v.samples {
 			fmt.Fprint(w, s)
 		}
+	}
+}
+
+func bitState(raw any) (uint64, bool) {
+	switch v := raw.(type) {
+	case json.Number:
+		bits, err := strconv.ParseUint(string(v), 10, 64)
+		return bits, err == nil
+	case string:
+		bits, err := strconv.ParseUint(v, 10, 64)
+		return bits, err == nil
+	default:
+		n, ok := number(raw)
+		if !ok || n < 0 || n > math.MaxUint64 || math.Trunc(n) != n {
+			return 0, false
+		}
+		return uint64(n), true
 	}
 }
