@@ -11,7 +11,7 @@
   "title": "Pandora",
   "uid": "pandora-exporter",
   "schemaVersion": 39,
-  "version": 4,
+  "version": 5,
   "timezone": "browser",
   "refresh": "1m",
   "time": {
@@ -601,6 +601,101 @@
         }
       },
       "description": "Значения motohours и motohours_CAN из API, в часах. При отсутствии данных серия не отображается."
+    },
+    {
+      "id": 15,
+      "title": "Расположение автомобилей",
+      "type": "geomap",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 56
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pandora_latitude_degrees",
+          "format": "table",
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "pandora_longitude_degrees",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "device_id",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value #A": "latitude",
+              "Value #B": "longitude"
+            },
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ],
+      "options": {
+        "view": {
+          "id": "coords",
+          "lat": 55.75,
+          "lon": 37.62,
+          "zoom": 4
+        },
+        "controls": {
+          "showZoom": true,
+          "showLegend": true,
+          "showAttribution": true
+        },
+        "tooltip": {
+          "mode": "details"
+        },
+        "basemap": {
+          "config": {},
+          "name": "Layer 0",
+          "type": "default"
+        },
+        "layers": [
+          {
+            "config": {
+              "style": {
+                "color": {
+                  "fixed": "#5794F2"
+                },
+                "size": {
+                  "fixed": 8
+                },
+                "symbol": "img/icons/marker/circle.svg"
+              }
+            },
+            "location": {
+              "mode": "coords",
+              "latitude": "latitude",
+              "longitude": "longitude"
+            },
+            "name": "Автомобили",
+            "tooltip": true,
+            "type": "markers"
+          }
+        ]
+      },
+      "description": "Координаты берутся из pandora_latitude_degrees и pandora_longitude_degrees."
     }
   ],
   "tags": [

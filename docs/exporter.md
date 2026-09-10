@@ -115,7 +115,7 @@ online — отдельное состояние связи машины. Сер
 | --poll-interval | 5m, минимум 10s; переопределяет PANDORA_POLL_INTERVAL |
 | --request-timeout | 20s на каждый HTTP-запрос |
 | --max-data-age | 10m |
-| --collect-coordinates | false |
+| --collect-coordinates | true |
 
     docker build -t pandora-exporter .
     docker run --rm -p 127.0.0.1:9349:9349 \
@@ -158,7 +158,7 @@ Prometheus доступен на localhost:9090, метрики — localhost:93
     pandora_battery_voltage_volts
       and on(device_id) (pandora_data_stale == 0)
 
-Для координат включите флаг и используйте в Grafana Geomap значения latitude_degrees и longitude_degrees, объединив по device_id. Координаты являются значениями метрик, не labels.
+Координаты включены по умолчанию (отключить можно флагом `--collect-coordinates=false`). Готовый dashboard содержит Geomap: запросы `pandora_latitude_degrees` и `pandora_longitude_degrees` объединяются по `device_id`, затем поля переименовываются в `latitude` и `longitude`. Координаты являются значениями метрик, не labels. Если у машины нет валидной пары координат, точка не выводится; последняя корректная позиция сохраняется при частичном ответе без координат.
 
 ## GitHub Actions / GHCR
 
