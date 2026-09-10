@@ -79,6 +79,7 @@ func run() error {
 			}
 		}
 	}()
+	go exporter.ListenWebSocket(ctx)
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", exporter)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok\n")) })

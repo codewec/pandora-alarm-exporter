@@ -283,3 +283,46 @@ func (c *Client) WebSocketStates(ctx context.Context, timeout time.Duration) (ma
 	}
 	return states, nil
 }
+
+// ListenWebSocket streams every state message to onState until the connection
+// closes. It is intentionally separate from HTTP polling.
+func (c *Client) ListenWebSocket(ctx context.Context, onState func(string, Object)) error {
+	if !strings.Contains(c.base, "pro.p-on.ru") {
+		return errors.New("WebSocket unavailable for this API host")
+	}
+	if !c.logged {
+		if err := c.login(ctx); err != nil {
+			return err
+		}
+	}
+	u := strings.Replace(c.base, "https://", "wss://", 1)
+	u = strings.Replace(u, "http://", "ws://", 1) + "/api/v4/updates/ws?access_token=" + url.QueryEscape(c.accessToken)
+	ws, _, err := (&websocket.Dialer{HandshakeTimeout: 20 * time.Second}).DialContext(ctx, u, http.Header{"Origin": []string{c.base}, "User-Agent": []string{"Mozilla/5.0"}})
+	if err != nil {
+		return errors.New("WebSocket connection failed")
+	}
+	defer ws.Close()
+	for {
+		_, body, err := ws.ReadMessage()
+		if err != nil {
+			return err
+		}
+		var message struct {
+			Type string `json:"type"`
+			Data Object `json:"data"`
+		}
+		if json.Unmarshal(body, &message) != nil || message.Data == nil {
+			continue
+		}
+		if message.Type != "initial-state" && message.Type != "state" {
+			continue
+		}
+		id := fmt.Sprint(message.Data["dev_id"])
+		if id == "<nil>" {
+			id = fmt.Sprint(message.Data["id"])
+		}
+		if id != "<nil>" && id != "" {
+			onState(id, message.Data)
+		}
+	}
+}

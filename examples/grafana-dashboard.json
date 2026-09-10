@@ -767,9 +767,9 @@
       "options": {
         "view": {
           "id": "coords",
-          "lat": 55.75,
-          "lon": 37.62,
-          "zoom": 4
+          "lat": 0,
+          "lon": 0,
+          "zoom": 2
         },
         "controls": {
           "showZoom": true,
@@ -808,7 +808,7 @@
           }
         ]
       },
-      "description": "Координаты берутся из pandora_latitude_degrees и pandora_longitude_degrees."
+      "description": "Пустая карта открывается с видом на весь мир. Точка появляется только при наличии валидных координат Pandora."
     }
   ],
   "tags": [

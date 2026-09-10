@@ -61,12 +61,6 @@ func (e *Exporter) Poll(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	wsStates, wsErr := e.client.WebSocketStates(ctx, 5*time.Second)
-	if wsErr != nil {
-		// HTTP remains the primary transport; WS enriches fields unavailable in
-		// stats (motohours, some CAN values) and may be unavailable by device.
-		wsStates = nil
-	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if full {
@@ -89,9 +83,6 @@ func (e *Exporter) Poll(ctx context.Context) (err error) {
 			e.stats[id] = Object{}
 		}
 		e.stats[id] = mergeState(e.stats[id], u.Stats[id])
-		if wsState := wsStates[id]; wsState != nil {
-			e.stats[id] = mergeState(e.stats[id], wsState)
-		}
 		if e.times[id] == nil {
 			e.times[id] = Object{}
 		}
@@ -101,6 +92,32 @@ func (e *Exporter) Poll(ctx context.Context) (err error) {
 	}
 	e.cursor, _ = u.TS.Int64()
 	return nil
+}
+
+// ListenWebSocket keeps the push channel open. It enriches the HTTP cache with
+// fields such as motohours and coordinates as soon as Pandora sends them.
+func (e *Exporter) ListenWebSocket(ctx context.Context) {
+	if !strings.Contains(e.client.base, "pro.p-on.ru") {
+		return
+	}
+	for ctx.Err() == nil {
+		err := e.client.ListenWebSocket(ctx, func(id string, state Object) {
+			e.mu.Lock()
+			if e.stats[id] == nil {
+				e.stats[id] = Object{}
+			}
+			e.stats[id] = mergeState(e.stats[id], state)
+			e.mu.Unlock()
+		})
+		if err == nil {
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(5 * time.Second):
+		}
+	}
 }
 func number(v any) (float64, bool) {
 	var n float64
