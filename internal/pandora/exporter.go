@@ -61,6 +61,12 @@ func (e *Exporter) Poll(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	wsStates, wsErr := e.client.WebSocketStates(ctx, 5*time.Second)
+	if wsErr != nil {
+		// HTTP remains the primary transport; WS enriches fields unavailable in
+		// stats (motohours, some CAN values) and may be unavailable by device.
+		wsStates = nil
+	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	if full {
@@ -83,6 +89,9 @@ func (e *Exporter) Poll(ctx context.Context) (err error) {
 			e.stats[id] = Object{}
 		}
 		e.stats[id] = mergeState(e.stats[id], u.Stats[id])
+		if wsState := wsStates[id]; wsState != nil {
+			e.stats[id] = mergeState(e.stats[id], wsState)
+		}
 		if e.times[id] == nil {
 			e.times[id] = Object{}
 		}

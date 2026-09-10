@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -35,6 +36,7 @@ type Update struct {
 type Client struct {
 	base, username, password string
 	http                     *http.Client
+	accessToken              string
 	logged                   bool
 }
 
@@ -64,7 +66,15 @@ func (c *Client) request(ctx context.Context, path string, form url.Values, out 
 		method = http.MethodPost
 		body = strings.NewReader(form.Encode())
 	}
-	req, err := http.NewRequestWithContext(ctx, method, c.base+path, body)
+	requestURL := c.base + path
+	if c.accessToken != "" && !strings.HasPrefix(path, "/oauth/") {
+		separator := "?"
+		if strings.Contains(requestURL, "?") {
+			separator = "&"
+		}
+		requestURL += separator + "access_token=" + url.QueryEscape(c.accessToken)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, requestURL, body)
 	if err != nil {
 		return errors.New("create API request")
 	}
@@ -121,16 +131,58 @@ func (c *Client) request(ctx context.Context, path string, form url.Values, out 
 }
 func (c *Client) login(ctx context.Context) error {
 	c.logged = false
+	if strings.Contains(c.base, "pro.p-on.ru") {
+		var token struct {
+			AccessToken string `json:"access_token"`
+		}
+		if err := c.requestWithAuth(ctx, "/oauth/token", "Basic cGNvbm5lY3Q6SW5mXzRlUm05X2ZfaEhnVl9zNg==", &token); err != nil {
+			return err
+		}
+		if token.AccessToken == "" {
+			return errors.New("OAuth response lacks access_token")
+		}
+		c.accessToken = token.AccessToken
+	}
 	var response struct {
 		Session string `json:"session_id"`
 	}
-	if err := c.request(ctx, "/api/users/login", url.Values{"login": {c.username}, "password": {c.password}, "lang": {"ru"}}, &response); err != nil {
+	form := url.Values{"login": {c.username}, "password": {c.password}, "lang": {"ru"}}
+	if c.accessToken != "" {
+		form.Set("v", "3")
+		_, offset := time.Now().Zone()
+		form.Set("utc_offset", strconv.Itoa(offset/60))
+		form.Set("access_token", c.accessToken)
+	}
+	if err := c.request(ctx, "/api/users/login", form, &response); err != nil {
 		return err
 	}
-	if response.Session == "" {
+	if response.Session == "" && c.accessToken == "" {
 		return errors.New("login response lacks session_id")
 	}
 	c.logged = true
+	return nil
+}
+
+func (c *Client) requestWithAuth(ctx context.Context, path, authorization string, out any) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.base+path, nil)
+	if err != nil {
+		return errors.New("create API request")
+	}
+	req.Header.Set("Authorization", authorization)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return errors.New("API transport failed")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("API HTTP status %d", resp.StatusCode)
+	}
+	dec := json.NewDecoder(io.LimitReader(resp.Body, 1024*1024))
+	dec.UseNumber()
+	if err := dec.Decode(out); err != nil {
+		return errors.New("invalid API JSON")
+	}
 	return nil
 }
 func (c *Client) get(ctx context.Context, path string, out any) error {
@@ -177,4 +229,57 @@ func (c *Client) Updates(ctx context.Context, ts int64) (Update, error) {
 		}
 	}
 	return u, err
+}
+
+// WebSocketStates reads the initial/state messages used by the extended HA
+// integration. Some values (notably motohours) are not present in HTTP stats.
+func (c *Client) WebSocketStates(ctx context.Context, timeout time.Duration) (map[string]Object, error) {
+	if !strings.Contains(c.base, "pro.p-on.ru") {
+		return nil, nil
+	}
+	if !c.logged {
+		if err := c.login(ctx); err != nil {
+			return nil, err
+		}
+	}
+	u := strings.Replace(c.base, "https://", "wss://", 1)
+	u = strings.Replace(u, "http://", "ws://", 1) + "/api/v4/updates/ws?access_token=" + url.QueryEscape(c.accessToken)
+	dialer := websocket.Dialer{HandshakeTimeout: timeout}
+	ws, _, err := dialer.DialContext(ctx, u, http.Header{"Origin": []string{c.base}, "User-Agent": []string{"Mozilla/5.0"}})
+	if err != nil {
+		return nil, errors.New("WebSocket connection failed")
+	}
+	defer ws.Close()
+	_ = ws.SetReadDeadline(time.Now().Add(timeout))
+	states := map[string]Object{}
+	for {
+		_, body, err := ws.ReadMessage()
+		if err != nil {
+			break
+		}
+		var message struct {
+			Type string `json:"type"`
+			Data Object `json:"data"`
+		}
+		if json.Unmarshal(body, &message) != nil || message.Data == nil {
+			continue
+		}
+		if message.Type != "initial-state" && message.Type != "state" {
+			continue
+		}
+		id := fmt.Sprint(message.Data["dev_id"])
+		if id == "<nil>" {
+			id = fmt.Sprint(message.Data["id"])
+		}
+		if id == "<nil>" || id == "" {
+			continue
+		}
+		if states[id] == nil {
+			states[id] = Object{}
+		}
+		states[id] = mergeState(states[id], message.Data)
+		// Initial state is sent for every device; once all are received the read
+		// deadline still protects us from waiting for an idle socket.
+	}
+	return states, nil
 }

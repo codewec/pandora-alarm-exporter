@@ -6,7 +6,7 @@
 
 Описание основано на анализе клиентского протокола и примеров ответов, с дополнительной проверкой входа, получения списка устройств и телеметрии на живом аккаунте 10 сентября 2026 года. API неофициальный; состав и доступность полей зависят от устройства, подключения CAN и прошивки. Наличие поля в примере не гарантирует его наличие у конкретной машины.
 
-| Запрос к https://p-on.ru | Данные / поведение |
+| Запрос к https://pro.p-on.ru | Данные / поведение |
 |---|---|
 | POST /api/users/login | Form login, password, lang=ru; возвращает session_id и устанавливает cookies |
 | GET /api/devices | Список машин: id, name, model, firmware, fuel_tank, features, permissions, SIM, сведения об автомобиле |
@@ -111,7 +111,7 @@ online — отдельное состояние связи машины. Сер
 | Флаг | По умолчанию |
 |---|---|
 | --web.listen-address | :9349 |
-| --pandora.base-url | https://p-on.ru |
+| --pandora.base-url | https://pro.p-on.ru |
 | --poll-interval | 5m, минимум 10s; переопределяет PANDORA_POLL_INTERVAL |
 | --request-timeout | 20s на каждый HTTP-запрос |
 | --max-data-age | 10m |

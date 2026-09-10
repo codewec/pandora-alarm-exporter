@@ -8,10 +8,10 @@
       "pluginName": "Prometheus"
     }
   ],
-  "title": "Pandora",
+  "title": "Pandora Alarm — обзор автомобиля",
   "uid": "pandora-exporter",
   "schemaVersion": 39,
-  "version": 6,
+  "version": 7,
   "timezone": "browser",
   "refresh": "1m",
   "time": {
@@ -22,27 +22,48 @@
     {
       "id": 1,
       "title": "Напряжение АКБ",
-      "type": "timeseries",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
+        "h": 7,
+        "w": 8,
+        "x": 16,
         "y": 0
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_battery_voltage_volts",
-          "legendFormat": "{{device_id}} {{state}} {{sim}} {{currency}} {{__name__}}"
+          "legendFormat": "АКБ"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "volt"
+          "unit": "volt",
+          "decimals": 1,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1.5
+              }
+            ]
+          }
         },
         "overrides": []
       },
@@ -50,33 +71,65 @@
         "legend": {
           "displayMode": "list",
           "placement": "bottom"
-        }
+        },
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name",
+        "colorMode": "background"
       }
     },
     {
       "id": 2,
       "title": "Уровень топлива",
-      "type": "timeseries",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 7
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_fuel_ratio",
-          "legendFormat": "{{device_id}} {{state}} {{sim}} {{currency}} {{__name__}}"
+          "legendFormat": "Топливо"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit"
+          "unit": "percentunit",
+          "min": 0,
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1.5
+              }
+            ]
+          }
         },
         "overrides": []
       },
@@ -84,7 +137,17 @@
         "legend": {
           "displayMode": "list",
           "placement": "bottom"
-        }
+        },
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name",
+        "colorMode": "background"
       }
     },
     {
@@ -96,26 +159,26 @@
         "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 14
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_engine_temperature_celsius",
-          "legendFormat": "{{device_id}} — Двигатель"
+          "legendFormat": "Двигатель"
         },
         {
           "refId": "B",
           "expr": "pandora_cabin_temperature_celsius",
-          "legendFormat": "{{device_id}} — Салон"
+          "legendFormat": "Салон"
         },
         {
           "refId": "C",
           "expr": "pandora_ambient_temperature_celsius",
-          "legendFormat": "{{device_id}} — За бортом"
+          "legendFormat": "Улица"
         }
       ],
       "fieldConfig": {
@@ -143,13 +206,13 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 36
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_speed_meters_per_second * 3.6",
-          "legendFormat": "{{device_id}} {{state}} {{sim}} {{currency}} {{__name__}}"
+          "legendFormat": "Скорость"
         }
       ],
       "fieldConfig": {
@@ -174,21 +237,21 @@
         "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 12,
         "x": 0,
-        "y": 16
+        "y": 23
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_gps_mileage_meters / 1000",
-          "legendFormat": "{{device_id}} — GPS"
+          "legendFormat": "GPS"
         },
         {
           "refId": "B",
           "expr": "pandora_can_mileage_meters / 1000",
-          "legendFormat": "{{device_id}} — CAN"
+          "legendFormat": "CAN"
         }
       ],
       "fieldConfig": {
@@ -216,13 +279,13 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 52
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_engine_rpm",
-          "legendFormat": "{{device_id}} {{state}} {{sim}} {{currency}} {{__name__}}"
+          "legendFormat": "Обороты"
         }
       ],
       "fieldConfig": {
@@ -250,13 +313,13 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 24
+        "y": 60
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_state{state=~\"armed|alarm|engine_running\"}",
-          "legendFormat": "{{device_id}} {{state}} {{sim}} {{currency}} {{__name__}}"
+          "legendFormat": "Состояние"
         }
       ],
       "fieldConfig": {
@@ -284,13 +347,13 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 24
+        "y": 36
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_data_age_seconds",
-          "legendFormat": "{{device_id}} {{state}} {{sim}} {{currency}} {{__name__}}"
+          "legendFormat": "Возраст"
         }
       ],
       "fieldConfig": {
@@ -318,13 +381,13 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 32
+        "y": 44
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_scrape_success",
-          "legendFormat": "{{device_id}} {{state}} {{sim}} {{currency}} {{__name__}}"
+          "legendFormat": "API"
         }
       ],
       "fieldConfig": {
@@ -352,13 +415,13 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 32
+        "y": 52
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_sim_balance",
-          "legendFormat": "{{device_id}} {{state}} {{sim}} {{currency}} {{__name__}}"
+          "legendFormat": "Баланс"
         }
       ],
       "fieldConfig": {
@@ -377,27 +440,48 @@
     {
       "id": 11,
       "title": "Уровень сигнала GSM",
-      "type": "timeseries",
+      "type": "stat",
       "datasource": {
         "type": "prometheus",
         "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 40
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 7
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_gsm_level",
-          "legendFormat": "{{device_id}} — GSM"
+          "legendFormat": "GSM"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short"
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1.5
+              }
+            ]
+          }
         },
         "overrides": []
       },
@@ -405,7 +489,17 @@
         "legend": {
           "displayMode": "list",
           "placement": "bottom"
-        }
+        },
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "name",
+        "colorMode": "background"
       }
     },
     {
@@ -417,41 +511,41 @@
         "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 40
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 0
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_state{state=\"front_left_door_open\"}",
-          "legendFormat": "{{device_id}} — Передняя левая открыта"
+          "legendFormat": "Левая передняя"
         },
         {
           "refId": "B",
           "expr": "pandora_state{state=\"front_right_door_open\"}",
-          "legendFormat": "{{device_id}} — Передняя правая открыта"
+          "legendFormat": "Правая передняя"
         },
         {
           "refId": "C",
           "expr": "pandora_state{state=\"rear_left_door_open\"}",
-          "legendFormat": "{{device_id}} — Задняя левая открыта"
+          "legendFormat": "Левая задняя"
         },
         {
           "refId": "D",
           "expr": "pandora_state{state=\"rear_right_door_open\"}",
-          "legendFormat": "{{device_id}} — Задняя правая открыта"
+          "legendFormat": "Правая задняя"
         },
         {
           "refId": "E",
           "expr": "pandora_state{state=\"trunk_open\"}",
-          "legendFormat": "{{device_id}} — Багажник открыт"
+          "legendFormat": "Багажник"
         },
         {
           "refId": "F",
           "expr": "pandora_state{state=\"hood_open\"}",
-          "legendFormat": "{{device_id}} — Капот открыт"
+          "legendFormat": "Капот"
         }
       ],
       "fieldConfig": {
@@ -460,19 +554,26 @@
           "min": 0,
           "max": 1,
           "decimals": 0,
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "Нет"
-                },
-                "1": {
-                  "text": "Да"
-                }
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1.5
               }
-            }
-          ]
+            ]
+          }
         },
         "overrides": []
       },
@@ -499,36 +600,36 @@
         "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 7,
+        "w": 8,
         "x": 0,
-        "y": 48
+        "y": 0
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_state{state=\"immobilizer\"}",
-          "legendFormat": "{{device_id}} — Двигатель заблокирован"
+          "legendFormat": "Блокировка двигателя"
         },
         {
           "refId": "B",
           "expr": "pandora_moving",
-          "legendFormat": "{{device_id}} — В движении"
+          "legendFormat": "В движении"
         },
         {
           "refId": "C",
           "expr": "pandora_state{state=\"ignition\"}",
-          "legendFormat": "{{device_id}} — Зажигание"
+          "legendFormat": "Зажигание"
         },
         {
           "refId": "D",
           "expr": "pandora_state{state=\"brake\"}",
-          "legendFormat": "{{device_id}} — Тормоз"
+          "legendFormat": "Тормоз"
         },
         {
           "refId": "E",
           "expr": "pandora_state{state=\"parking_brake\"}",
-          "legendFormat": "{{device_id}} — Нейтраль (parking)"
+          "legendFormat": "Нейтраль"
         }
       ],
       "fieldConfig": {
@@ -537,19 +638,26 @@
           "min": 0,
           "max": 1,
           "decimals": 0,
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "Нет"
-                },
-                "1": {
-                  "text": "Да"
-                }
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1.5
               }
-            }
-          ]
+            ]
+          }
         },
         "overrides": []
       },
@@ -576,21 +684,21 @@
         "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
-        "h": 8,
+        "h": 9,
         "w": 12,
         "x": 12,
-        "y": 48
+        "y": 23
       },
       "targets": [
         {
           "refId": "A",
           "expr": "pandora_engine_hours",
-          "legendFormat": "{{device_id}} — Моточасы"
+          "legendFormat": "Моточасы"
         },
         {
           "refId": "B",
           "expr": "pandora_can_engine_hours",
-          "legendFormat": "{{device_id}} — Моточасы CAN"
+          "legendFormat": "Моточасы CAN"
         }
       ],
       "fieldConfig": {
@@ -616,10 +724,10 @@
         "uid": "${DS_PROMETHEUS}"
       },
       "gridPos": {
-        "h": 12,
+        "h": 14,
         "w": 24,
         "x": 0,
-        "y": 56
+        "y": 28
       },
       "targets": [
         {
@@ -711,5 +819,6 @@
   },
   "templating": {
     "list": []
-  }
+  },
+  "description": "Верхние карточки показывают текущие состояния. Ниже расположены графики телеметрии и карта автомобилей. Названия серий не содержат технический ID."
 }

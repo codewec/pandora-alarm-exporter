@@ -24,7 +24,7 @@ func main() {
 }
 func run() error {
 	listen := flag.String("web.listen-address", ":9349", "HTTP listen address")
-	base := flag.String("pandora.base-url", "https://p-on.ru", "Pandora API base URL")
+	base := flag.String("pandora.base-url", "https://pro.p-on.ru", "Pandora API base URL")
 	interval := flag.Duration("poll-interval", 5*time.Minute, "Background poll interval (minimum 10s)")
 	timeout := flag.Duration("request-timeout", 20*time.Second, "Timeout per API request")
 	maxAge := flag.Duration("max-data-age", 10*time.Minute, "Threshold for data_stale")
